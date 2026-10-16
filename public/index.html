@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Crate — fill it, the DJ digs</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230b0b12'/><circle cx='50' cy='50' r='28' fill='none' stroke='%23ff4d6d' stroke-width='8'/><circle cx='50' cy='50' r='6' fill='%23ff4d6d'/></svg>" />
+  </head>
+  <body class="guest">
+    <div id="landing">
+      <div class="hero">
+        <span class="fx fx-spot" aria-hidden="true"></span>
+        <span class="fx fx-glints" aria-hidden="true"></span>
+        <div class="logo">CRATE</div>
+        <p class="tag">Fill the crate. The DJ digs.</p>
+      </div>
+      <button id="startBtn" class="primary big">Start the party (I am the DJ)</button>
+      <div class="or"><span>or join one</span></div>
+      <form id="joinForm" class="joinform">
+        <input
+          id="codeInput"
+          maxlength="6"
+          placeholder="ROOM CODE"
+          autocomplete="off"
+          autocapitalize="characters"
+          spellcheck="false"
+          inputmode="text"
+        />
+        <input id="nameInput" placeholder="Your name" maxlength="24" autocomplete="nickname" />
+        <button type="submit" class="primary">Join the crate</button>
+      </form>
+      <p id="landingErr" class="err" hidden></p>
+      <p class="hint">Friends upload tracks. You watch the queue. The DJ picks what plays.</p>
+    </div>
+
+    <div id="app" hidden>
+      <header class="np-bar">
+        <div class="np-label">
+          <span class="live-dot" aria-hidden="true"></span>NOW PLAYING
+        </div>
+        <div class="np-title" id="npTitle">Nothing yet</div>
+        <div class="np-person" id="npPerson"></div>
+        <div class="np-track">
+          <span id="npCur">0:00</span>
+          <div class="np-fill-wrap"><div id="npFill"></div></div>
+          <span id="npRem">0:00</span>
+        </div>
+      </header>
+
+      <div id="nextBanner" class="banner" hidden>YOUR SONG IS UP NEXT</div>
+
+      <section class="card upload-card">
+        <h2>Add a track</h2>
+        <label class="filelabel">
+          <input type="file" id="fileInput" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.flac" />
+          <span id="fileLabel">Choose an audio file</span>
+        </label>
+        <input id="titleInput" placeholder="Artist - Title" maxlength="80" />
+        <div class="progress" id="progWrap" hidden><div id="progFill"></div></div>
+        <p id="fileMsg" class="hint" hidden></p>
+        <button id="uploadBtn" class="primary" disabled>Add to the crate</button>
+      </section>
+
+      <section class="my-stuff">
+        <span id="myStatus" class="hint"></span>
+        <button id="withdrawBtn" class="linkish" hidden>Remove my songs</button>
+      </section>
+
+      <section class="card queue-card">
+        <h2>The crate</h2>
+        <div id="queueList" class="queue-list"></div>
+      </section>
+
+      <footer>
+        Room <b id="codeFoot"></b> — tell friends to scan the DJ's QR code.
+      </footer>
+    </div>
+
+    <script type="module" src="/js/guest.js"></script>
+  </body>
+</html>

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Crate — DJ console</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230b0b12'/><circle cx='50' cy='50' r='28' fill='none' stroke='%23ff4d6d' stroke-width='8'/><circle cx='50' cy='50' r='6' fill='%23ff4d6d'/></svg>" />
+  </head>
+  <body class="dj">
+    <div id="denied" class="denied" hidden>
+      <div class="logo">CRATE</div>
+      <p>This is the DJ screen, but you did not start this party.</p>
+      <a class="primary big" href="/">Start a party instead</a>
+    </div>
+
+    <div id="djApp" hidden>
+      <header class="topbar">
+        <div class="brand">
+          <span class="logo small">CRATE</span>
+          <span class="code-badge" id="codeBadge"></span>
+        </div>
+        <div class="top-actions">
+          <button id="displayBtn" class="ghost">Display mode</button>
+          <button id="endBtn" class="danger">End party</button>
+        </div>
+      </header>
+
+      <div class="dj-grid">
+        <section class="player-panel">
+          <div class="qr-box">
+            <div id="qrCode" class="qr"></div>
+            <div class="qr-text">
+              <div class="hint">Scan to join</div>
+              <div class="code-big" id="codeBig"></div>
+            </div>
+          </div>
+
+          <div class="now-block">
+            <span class="fx fx-spot" aria-hidden="true"></span>
+            <span class="fx fx-glints" aria-hidden="true"></span>
+            <div class="np-label">
+              <span class="live-dot" aria-hidden="true"></span>NOW PLAYING
+            </div>
+            <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+            <div class="now-title" id="nowTitle">Nothing yet</div>
+            <div class="now-person" id="nowPerson"></div>
+            <div class="seekrow">
+              <span id="tCur">0:00</span>
+              <input type="range" id="seek" min="0" max="1000" value="0" />
+              <span id="tRem">0:00</span>
+            </div>
+            <div class="controls">
+              <button id="bigPlay" class="primary big">Play</button>
+              <label class="vol"
+                >Vol <input type="range" id="vol" min="0" max="100" value="80"
+              /></label>
+              <label class="auto"
+                ><input type="checkbox" id="autoAdv" /> Auto-next</label
+              >
+            </div>
+            <div class="upnext" id="upNext">Up next: the crate is empty</div>
+            <div class="hotkeys hint">Space play/pause · N next · arrows seek/volume</div>
+          </div>
+
+          <div class="history">
+            <h3>Tonight</h3>
+            <ol id="historyList"></ol>
+            <p id="historyEmpty" class="hint">Nothing played yet.</p>
+          </div>
+        </section>
+
+        <section class="queue-panel">
+          <div class="queue-toolbar">
+            <h2>Requests</h2>
+            <button id="sortBtn" class="ghost">Sort by least played</button>
+          </div>
+          <div id="queueList" class="queue-list dj-queue"></div>
+        </section>
+      </div>
+
+      <footer class="dj-foot hint">
+        <span id="roomName"></span> · drag cards to reorder · Pin sends someone to the top
+      </footer>
+    </div>
+
+    <audio id="audio" preload="metadata"></audio>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+    <script type="module" src="/js/dj.js"></script>
+  </body>
+</html>

@@ -1,0 +1,6 @@
+node_modules/
+.wrangler/
+dev.out.log
+dev.err.log
+.DS_Store
+*.log
