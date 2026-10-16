@@ -263,8 +263,16 @@ async function run() {
   r = await call('GET', '/api/ytsearch?code=' + code + '&q=test', { jar: jarA });
   assert.equal(r.status, 200, 'ytsearch status');
   assert.ok(Array.isArray(r.data.results), 'results array');
-  assert.equal(r.data.searchOpen, false, 'search closed without key');
-  ok('ytsearch degrades gracefully without key');
+  assert.equal(typeof r.data.searchOpen, 'boolean', 'searchOpen flag');
+  if (r.data.searchOpen) {
+    for (const item of r.data.results) {
+      assert.ok(typeof item.id === 'string' && item.id.length > 0, 'result has id');
+      assert.ok(typeof item.title === 'string' && item.title.length > 0, 'result has title');
+    }
+    ok('ytsearch returns shaped results (key configured)');
+  } else {
+    ok('ytsearch degrades gracefully without key');
+  }
 
   r = await call('POST', '/api/sort', { jar: hostJar, body: { code } });
   assert.equal(r.status, 200, 'sort status');
