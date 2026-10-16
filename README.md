@@ -73,7 +73,7 @@ node selftest.mjs http://127.0.0.1:8790
 
 ## Teaser
 
-`teaser/index.html` is a self-contained, zero-dependency motion teaser (open it directly in a browser, no build): a ~16s looping promo of the core ritual: scan to join, fill the crate, the DJ digs, drop the track. It reuses the app's design tokens verbatim, respects `prefers-reduced-motion` (static poster, no autoplay), and has pause/replay controls.
+Live: **[thebanith.github.io/crate/teaser](https://thebanith.github.io/crate/teaser/)** — or open `teaser/index.html` directly in a browser (self-contained, no build). A ~16s looping promo of the core ritual: scan to join, fill the crate, the DJ digs, drop the track. It reuses the app's design tokens verbatim, respects `prefers-reduced-motion` (static poster, no autoplay), and has pause/replay controls.
 
 ## Deploying
 
