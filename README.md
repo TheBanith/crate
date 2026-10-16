@@ -41,6 +41,8 @@ crate/
 │   ├── room.js            the Room Durable Object (state, WS, audio I/O)
 │   └── util.js            shared helpers (time fmt, cookie sign/verify, room codes)
 ├── selftest.mjs           23-check end-to-end test suite against a live server
+├── teaser/
+│   └── index.html         self-contained motion teaser (open directly in a browser)
 ├── wrangler.jsonc         Worker config (assets, DO binding, R2 bucket, migration)
 ├── package.json
 └── deploy/
@@ -68,6 +70,10 @@ node selftest.mjs http://127.0.0.1:8790
 ```
 
 23 checks: room lifecycle, join/leave, upload validation (extension, size, session), reorder rights (guest vs DJ), play/next/veto/withdraw, counter mechanics, ranged reads (206), HEAD, 403 paths, and end-party wipe.
+
+## Teaser
+
+`teaser/index.html` is a self-contained, zero-dependency motion teaser (open it directly in a browser, no build): a ~16s looping promo of the core ritual: scan to join, fill the crate, the DJ digs, drop the track. It reuses the app's design tokens verbatim, respects `prefers-reduced-motion` (static poster, no autoplay), and has pause/replay controls.
 
 ## Deploying
 
