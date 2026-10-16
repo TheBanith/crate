@@ -2,6 +2,8 @@
 
 **Fill the crate. The DJ digs.**
 
+![Crate teaser](docs/teaser.gif)
+
 A party music queue app: guests scan a QR code, upload tracks into a shared crate, and watch the DJ drag requests into the play order — with a 100% serverless backend.
 
 - **Guests:** join with a 6-character room code + nickname (no account), upload audio tracks, see the queue, watch what's playing in real time.
@@ -73,7 +75,9 @@ node selftest.mjs http://127.0.0.1:8790
 
 ## Teaser
 
-Live: **[thebanith.github.io/crate/teaser](https://thebanith.github.io/crate/teaser/)** — or open `teaser/index.html` directly in a browser (self-contained, no build). A ~8s looping promo of the core ritual: scan to join, fill the crate, the DJ digs, drop the track. It reuses the app's design tokens verbatim, respects `prefers-reduced-motion` (static poster, no autoplay), and has pause/replay controls.
+## Teaser
+
+Live: **[thebanith.github.io/crate/teaser](https://thebanith.github.io/crate/teaser/)** — or open `teaser/index.html` directly in a browser (self-contained, no build). A ~8s looping promo of the core ritual: scan to join, fill the crate, the DJ digs, drop the track. `docs/teaser.gif` is the same promo rendered frame-by-frame for the README.
 
 ## Deploying
 

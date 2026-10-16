@@ -959,6 +959,24 @@
         color: var(--muted);
       }
 
+      body.gif {
+        padding: 0;
+        min-height: 0;
+        background: var(--bg);
+      }
+
+      body.gif .stage {
+        width: 100vw;
+        aspect-ratio: 16 / 10;
+        border-radius: 0;
+        border: none;
+      }
+
+      body.gif .chrome,
+      body.gif .rail {
+        display: none;
+      }
+
       .brandmark b {
         color: var(--text);
         font-weight: 700;
@@ -1541,14 +1559,22 @@
           partsLayer.appendChild(p);
           parts.push(p);
         }
+        var gifMode = new URLSearchParams(location.search).has('gif');
+        if (gifMode) document.body.classList.add('gif');
+        var seed = 1337;
+        function srand() {
+          seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+          return seed / 0x7fffffff;
+        }
+        var rnd = gifMode ? srand : Math.random;
         function seedParticles() {
           for (var q = 0; q < parts.length; q++) {
             var el = parts[q];
             el.className = 'p' + (q % 3);
-            el.style.left = (4 + Math.random() * 92) + 'cqw';
-            el.style.top = (96 + Math.random() * 8) + 'cqh';
-            el.style.animationDelay = (-Math.random() * 9).toFixed(2) + 's';
-            el.style.animationDuration = (6 + Math.random() * 5).toFixed(2) + 's';
+            el.style.left = (4 + rnd() * 92).toFixed(2) + 'cqw';
+            el.style.top = (96 + rnd() * 8).toFixed(2) + 'cqh';
+            el.style.animationDelay = (-rnd() * 9).toFixed(2) + 's';
+            el.style.animationDuration = (6 + rnd() * 5).toFixed(2) + 's';
           }
         }
         seedParticles();
@@ -1656,6 +1682,17 @@
             playBtn.click();
           }
         });
+
+        if (gifMode) {
+          elapsed = 0;
+          idx = -1;
+          countEl.textContent = '0';
+          apply(0);
+        }
+        window.teaserElapsed = function () {
+          return elapsed;
+        };
+        window.teaserTotal = total;
       })();
     </script>
   </body>
