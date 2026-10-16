@@ -436,7 +436,6 @@
         font-size: 1cqw;
         opacity: 0;
       }
-
       .chip .art {
         width: 1.8cqw;
         height: 1.8cqw;
@@ -486,44 +485,6 @@
 
       .stage.s3 .slot:nth-child(4) {
         animation-delay: 2500ms;
-      }
-
-      .upload {
-        position: absolute;
-        left: 6cqw;
-        bottom: 16cqh;
-        display: grid;
-        gap: 0.8cqw;
-        width: 15cqw;
-      }
-
-      .upload-bar {
-        height: 0.7cqw;
-        border-radius: 99px;
-        background: var(--panel2);
-        overflow: hidden;
-      }
-
-      .upload-bar i {
-        display: block;
-        height: 100%;
-        width: 100%;
-        border-radius: 99px;
-        background: var(--disco-grad);
-        transform: scaleX(0);
-        transform-origin: 0 50%;
-      }
-
-      .stage.s3 .upload-bar i {
-        animation: uploadFill 2.6s var(--ease) both;
-      }
-
-      .upload-label {
-        font-family: var(--mono);
-        font-size: 0.9cqw;
-        color: var(--muted);
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
       }
 
       .queue {
@@ -902,6 +863,109 @@
         text-transform: uppercase;
       }
 
+      .brandmark {
+        position: absolute;
+        top: 2.4cqh;
+        left: 2.6cqw;
+        z-index: 4;
+        display: flex;
+        align-items: center;
+        gap: 0.9cqw;
+        font-family: var(--mono);
+        font-size: 1cqw;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .brandmark b {
+        color: var(--text);
+        font-weight: 800;
+      }
+
+      .stage.s2 .scan-caption {
+        animation: breathe 2s ease-in-out infinite;
+      }
+
+      .upload-phone {
+        position: absolute;
+        left: 6cqw;
+        bottom: 12cqh;
+        z-index: 3;
+      }
+
+      .stage.s3 .upload-phone {
+        animation: riseIn 520ms var(--ease-pop) 150ms both;
+      }
+
+      .upload-phone .upload-bar {
+        margin-top: auto;
+        height: 0.7cqw;
+        border-radius: 99px;
+        background: var(--panel2);
+        overflow: hidden;
+      }
+
+      .upload-phone .upload-bar i {
+        display: block;
+        height: 100%;
+        width: 100%;
+        border-radius: 99px;
+        background: var(--disco-grad);
+        transform: scaleX(0);
+        transform-origin: 0 50%;
+      }
+
+      .stage.s3 .upload-phone .upload-bar i {
+        animation: uploadFill 2.6s var(--ease) 350ms both;
+      }
+
+      .upload-phone .upload-label {
+        font-family: var(--mono);
+        font-size: 0.8cqw;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .stage.s5 .now-label {
+        animation: riseIn 420ms var(--ease) 120ms both;
+      }
+
+      .stage.s5 .now-title {
+        animation: riseIn 520ms var(--ease) 220ms both, titlePan 9s linear 420ms infinite;
+      }
+
+      .stage.s5 .now-person {
+        animation: riseIn 420ms var(--ease) 320ms both;
+      }
+
+      .stage.s5 .eq {
+        animation: riseIn 420ms var(--ease) 400ms both;
+      }
+
+      .stage.s5 .play {
+        animation: riseIn 420ms var(--ease) 480ms both, playRing 2.6s var(--ease) 900ms infinite;
+      }
+
+      .stage.s5 .queue .q-card:nth-child(1) {
+        animation: riseIn 460ms var(--ease) 700ms both;
+      }
+
+      .stage.s5 .queue .q-card:nth-child(2) {
+        animation: riseIn 460ms var(--ease) 820ms both;
+      }
+
+      @keyframes breathe {
+        0%,
+        100% {
+          opacity: 0.5;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+
       .stage.paused *,
       .stage.paused {
         animation-play-state: paused !important;
@@ -1218,6 +1282,7 @@
       <div class="wash" aria-hidden="true"></div>
       <span class="fx fx-spot" aria-hidden="true"></span>
       <span class="fx fx-glints" aria-hidden="true"></span>
+      <div class="brandmark" aria-hidden="true"><b>Crate</b><span>teaser</span></div>
 
       <section class="scene scene-1">
         <p class="kicker">A party in one link</p>
@@ -1258,24 +1323,29 @@
         <div class="crate" id="crate">
           <div class="crate-head"><span>The crate</span><span class="count" id="count">0</span></div>
           <div class="slot">
-            <div class="chip" style="--dx: -34cqw; --dy: -2cqh">
+            <div class="chip" style="--dx: -20cqw; --dy: -14cqh">
               <span class="art"></span><span><b>Neon Skyline</b> <span>Maison</span></span>
             </div>
           </div>
           <div class="slot">
-            <div class="chip" style="--dx: -30cqw; --dy: -6cqh">
+            <div class="chip" style="--dx: -22cqw; --dy: -16cqh">
               <span class="art"></span><span><b>Afterglow</b> <span>Roya</span></span>
             </div>
           </div>
           <div class="slot">
-            <div class="chip" style="--dx: -26cqw; --dy: -10cqh">
+            <div class="chip" style="--dx: -24cqw; --dy: -18cqh">
               <span class="art"></span><span><b>Tape Hiss</b> <span>Sina</span></span>
             </div>
           </div>
         </div>
-        <div class="upload" aria-hidden="true">
-          <span class="upload-label">Uploading track</span>
-          <span class="upload-bar"><i></i></span>
+        <div class="upload-phone phone" aria-hidden="true">
+          <div class="screen">
+            <div class="screen-head"><span>Add a track</span><span class="code-badge">7QK4ZM</span></div>
+            <div class="field">ARTIST - TITLE</div>
+            <div class="btn primary">Add to the crate</div>
+            <span class="upload-bar"><i></i></span>
+            <span class="upload-label">Uploading</span>
+          </div>
         </div>
       </section>
 
