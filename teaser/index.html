@@ -1653,8 +1653,14 @@
           caption.innerHTML = '<b>05</b> your turn';
           for (var d2 = 0; d2 < dots.length; d2++) dots[d2].classList.toggle('on', d2 === 4);
         } else {
-          apply(0);
-          start();
+          if (gifMode) {
+            idx = -1;
+            countEl.textContent = '0';
+            apply(0);
+          } else {
+            apply(0);
+            start();
+          }
         }
 
         playBtn.addEventListener('click', function () {
@@ -1689,6 +1695,35 @@
           countEl.textContent = '0';
           apply(0);
         }
+        window.teaserSeek = function (ms) {
+          cancelAnimationFrame(raf);
+          raf = 0;
+          elapsed = ms % total;
+          var s = 0;
+          for (var k = 0; k < scenes.length; k++) {
+            if (elapsed >= scenes[k].at) s = k;
+          }
+          if (s !== idx) {
+            idx = -1;
+            apply(s);
+          }
+          railFill.style.transform = 'scaleX(' + (elapsed / total).toFixed(4) + ')';
+          var shown = '0';
+          for (var c = 0; c < counts.length; c++) {
+            if (elapsed >= countAt[c]) shown = String(counts[c]);
+          }
+          if (countEl.textContent !== shown) countEl.textContent = shown;
+          var local = elapsed - scenes[s].at;
+          var anims = document.getAnimations();
+          for (var a = 0; a < anims.length; a++) {
+            var an = anims[a];
+            try {
+              an.pause();
+              an.currentTime = local;
+            } catch (e) {}
+          }
+          return elapsed;
+        };
         window.teaserElapsed = function () {
           return elapsed;
         };
