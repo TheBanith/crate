@@ -32,6 +32,9 @@ export function errMsg(e) {
     'too large': 'That file is over 50MB.',
     server: 'Server hiccup, try again.',
     failed: 'Upload failed, try again.',
+    added: 'Added to the crate.',
+    linkbad: 'That link is not a YouTube or SoundCloud track.',
+    searchoff: 'YouTube search needs an API key on the server.',
   };
   return (e && e.data && m[e.data.error]) || (e && e.message) || 'Something went wrong.';
 }

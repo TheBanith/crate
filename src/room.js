@@ -27,8 +27,17 @@ export class Room extends DurableObject {
       'CREATE TABLE IF NOT EXISTS people (id INTEGER PRIMARY KEY AUTOINCREMENT, token_hash TEXT UNIQUE, name TEXT, sort_order INTEGER, pinned INTEGER DEFAULT 0, played INTEGER DEFAULT 0)'
     );
     this.x(
-      'CREATE TABLE IF NOT EXISTS tracks (id INTEGER PRIMARY KEY AUTOINCREMENT, person_id INTEGER, title TEXT, path TEXT UNIQUE, ext TEXT, size INTEGER DEFAULT 0, duration REAL DEFAULT 0, status TEXT DEFAULT \'queued\', played_at INTEGER)'
+      'CREATE TABLE IF NOT EXISTS tracks (id INTEGER PRIMARY KEY AUTOINCREMENT, person_id INTEGER, title TEXT, path TEXT UNIQUE, ext TEXT, size INTEGER DEFAULT 0, duration REAL DEFAULT 0, status TEXT DEFAULT \'queued\', played_at INTEGER, source TEXT DEFAULT \'file\', external_id TEXT, thumb TEXT)'
     );
+    for (const col of [
+      "ALTER TABLE tracks ADD COLUMN source TEXT DEFAULT 'file'",
+      'ALTER TABLE tracks ADD COLUMN external_id TEXT',
+      'ALTER TABLE tracks ADD COLUMN thumb TEXT',
+    ]) {
+      try {
+        this.x(col);
+      } catch {}
+    }
     this._ready = true;
   }
 
@@ -49,9 +58,13 @@ export class Room extends DurableObject {
         id: Number(t.id),
         title: t.title,
         path: t.path,
+        size: Number(t.size) || 0,
         duration: Number(t.duration) || 0,
         status: t.status,
         playedAt: t.played_at == null ? null : Number(t.played_at),
+        source: t.source || 'file',
+        externalId: t.external_id || null,
+        thumb: t.thumb || null,
       });
     }
     return {
@@ -107,7 +120,7 @@ export class Room extends DurableObject {
   }
 
   async wipe() {
-    const tracks = this.q('SELECT path FROM tracks');
+    const tracks = this.q("SELECT path FROM tracks WHERE source IS NULL OR source = 'file'");
     const paths = tracks.map((t) => t.path).filter(Boolean);
     for (let i = 0; i < paths.length; i += 500) {
       try {
@@ -218,6 +231,35 @@ export class Room extends DurableObject {
     return { state: st };
   }
 
+  async addExternal(rand, title, source, externalId, thumb, duration) {
+    this.ensure();
+    const room = this.room();
+    if (!room) return { error: 'gone' };
+    if (!rand) return { error: 'forbidden' };
+    const h = await sha256hex(rand);
+    const p = this.q('SELECT id FROM people WHERE token_hash = ?1', h);
+    if (!p[0]) return { error: 'forbidden' };
+    if (source !== 'yt' && source !== 'sc') return { error: 'bad' };
+    const id = String(externalId || '').slice(0, 200);
+    if (!id) return { error: 'bad' };
+    const dur = Number(duration);
+    this.x(
+      'INSERT INTO tracks (person_id, title, path, ext, size, duration, status, source, external_id, thumb) VALUES (?1, ?2, ?3, ?4, 0, ?5, \'queued\', ?6, ?7, ?8)',
+      Number(p[0].id),
+      String(title || 'Untitled').trim().slice(0, 80) || 'Untitled',
+      source + ':' + id,
+      source === 'yt' ? 'yt' : 'sc',
+      Number.isFinite(dur) ? Math.min(Math.max(dur, 0), 86400) : 0,
+      source,
+      id,
+      String(thumb || '').slice(0, 500)
+    );
+    this.touch();
+    const st = this.state();
+    this.push(st);
+    return { state: st };
+  }
+
   async play(rand, trackId) {
     this.ensure();
     const room = this.room();
@@ -303,7 +345,7 @@ export class Room extends DurableObject {
     this.x('DELETE FROM tracks WHERE id = ?1', Number(trackId));
     this.x('DELETE FROM people WHERE id = ?1 AND played = 0 AND NOT EXISTS (SELECT 1 FROM tracks WHERE person_id = people.id)', Number(t[0].person_id));
     try {
-      if (t[0].path) await this.env.AUDIO.delete(t[0].path);
+      if (t[0].path && (!t[0].source || t[0].source === 'file')) await this.env.AUDIO.delete(t[0].path);
     } catch {}
     this.touch();
     const st = this.state();
@@ -334,11 +376,11 @@ export class Room extends DurableObject {
     const p = this.q('SELECT * FROM people WHERE token_hash = ?1', h);
     if (!p[0]) return { error: 'forbidden' };
     const pid = Number(p[0].id);
-    const queued = this.q('SELECT path FROM tracks WHERE person_id = ?1 AND status = \'queued\'', pid);
+    const queued = this.q('SELECT path, source FROM tracks WHERE person_id = ?1 AND status = \'queued\'', pid);
     this.x('DELETE FROM tracks WHERE person_id = ?1 AND status = \'queued\'', pid);
     for (const row of queued) {
       try {
-        if (row.path) await this.env.AUDIO.delete(row.path);
+        if (row.path && (!row.source || row.source === 'file')) await this.env.AUDIO.delete(row.path);
       } catch {}
     }
     const left = this.q('SELECT COUNT(*) AS c FROM tracks WHERE person_id = ?1', pid);

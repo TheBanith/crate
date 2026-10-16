@@ -121,11 +121,13 @@ function renderNow() {
     setText($('nowTitle'), 'Nothing yet');
     $('nowTitle').classList.add('idle');
     $('nowPerson').textContent = '';
+    showNowSrc(null);
     return;
   }
   $('nowTitle').classList.remove('idle');
   setText($('nowTitle'), found.track.title);
   $('nowPerson').textContent = 'from ' + found.person.name;
+  showNowSrc(found.track);
 }
 
 function render() {
@@ -184,6 +186,21 @@ function renderQueue() {
     for (const t of queued) {
       const row = document.createElement('div');
       row.className = 'track' + (next && next.track.id === t.id ? ' next' : '');
+      if (t.thumb || (t.source && t.source !== 'file')) {
+        const art = document.createElement('img');
+        art.className = 'track-art';
+        art.alt = '';
+        art.loading = 'lazy';
+        art.referrerPolicy = 'no-referrer';
+        art.src = t.thumb || (t.source === 'yt' && t.externalId ? 'https://i.ytimg.com/vi/' + t.externalId + '/default.jpg' : '');
+        row.appendChild(art);
+      }
+      if (t.source && t.source !== 'file') {
+        const src = document.createElement('span');
+        src.className = 'badge src-' + t.source;
+        src.textContent = t.source === 'yt' ? 'YT' : 'SC';
+        row.appendChild(src);
+      }
       const tt = document.createElement('span');
       tt.className = 'track-title';
       tt.textContent = t.title;
@@ -308,13 +325,21 @@ function renderHistory() {
     time.className = 'hist-time';
     const d = new Date(r.t.playedAt);
     time.textContent = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    if (r.t.source && r.t.source !== 'file') {
+      const src = document.createElement('span');
+      src.className = 'badge src-' + r.t.source;
+      src.textContent = r.t.source === 'yt' ? 'YT' : 'SC';
+      li.appendChild(time);
+      li.appendChild(src);
+    } else {
+      li.appendChild(time);
+    }
     const tt = document.createElement('span');
     tt.className = 'hist-title';
     tt.textContent = r.t.title;
     const who = document.createElement('span');
     who.className = 'hist-who';
     who.textContent = r.p.name;
-    li.appendChild(time);
     li.appendChild(tt);
     li.appendChild(who);
     list.appendChild(li);
@@ -325,13 +350,295 @@ function trackPath(t) {
   return '/file/' + code + '/' + t.path;
 }
 
+let srcKind = 'file';
+let extTag = 0;
+let extProbe = null;
+
+function isExt(t) {
+  return !!t && (t.source === 'yt' || t.source === 'sc');
+}
+
+function showNowSrc(t) {
+  const badge = $('nowSrc');
+  const art = $('nowArt');
+  if (!isExt(t)) {
+    badge.hidden = true;
+    art.hidden = true;
+    return;
+  }
+  badge.hidden = false;
+  badge.className = 'badge src-' + t.source;
+  badge.textContent = t.source === 'yt' ? 'YouTube' : 'SoundCloud';
+  const url = t.thumb || (t.source === 'yt' ? 'https://i.ytimg.com/vi/' + t.externalId + '/default.jpg' : '');
+  if (url) {
+    art.hidden = false;
+    if (art.src !== url) art.src = url;
+  } else {
+    art.hidden = true;
+    art.removeAttribute('src');
+  }
+}
+
+function currentTrack() {
+  return state && state.nowTrack ? findTrack(state, state.nowTrack) : null;
+}
+
+function stopExt() {
+  extTag++;
+  if (extProbe) {
+    clearInterval(extProbe);
+    extProbe = null;
+  }
+  srcKind = 'file';
+  const frame = $('extFrame');
+  if (frame) {
+    frame.textContent = '';
+    frame.hidden = true;
+  }
+}
+
+function syncPlayingExt(playing) {
+  document.body.classList.toggle('playing', playing);
+  const btn = $('bigPlay');
+  btn.classList.toggle('is-playing', playing);
+  btn.textContent = playing ? 'Pause' : 'Play';
+}
+
+function ytApi() {
+  return new Promise((resolve) => {
+    if (window.YT && window.YT.Player) return resolve();
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    tag.onload = () => resolve();
+    tag.onerror = () => resolve();
+    document.head.appendChild(tag);
+    let n = 0;
+    const iv = setInterval(() => {
+      if ((window.YT && window.YT.Player) || n++ > 100) {
+        clearInterval(iv);
+        resolve();
+      }
+    }, 100);
+  });
+}
+
+function scApi() {
+  return new Promise((resolve) => {
+    if (window.SC && window.SC.Widget) return resolve();
+    const tag = document.createElement('script');
+    tag.src = 'https://w.soundcloud.com/player/api.js';
+    tag.onload = () => resolve();
+    tag.onerror = () => resolve();
+    document.head.appendChild(tag);
+    let n = 0;
+    const iv = setInterval(() => {
+      if ((window.SC && window.SC.Widget) || n++ > 100) {
+        clearInterval(iv);
+        resolve();
+      }
+    }, 100);
+  });
+}
+
+async function playExt(t) {
+  const tag = ++extTag;
+  stopFileKeepState();
+  srcKind = t.source;
+  extTag = tag;
+  showNowSrc(t);
+  const frame = $('extFrame');
+  frame.textContent = '';
+  frame.hidden = false;
+  const mount = document.createElement('div');
+  frame.appendChild(mount);
+  syncPlayingExt(false);
+  if (t.source === 'yt') {
+    await ytApi();
+    if (tag !== extTag) return;
+    if (!(window.YT && window.YT.Player)) {
+      toast('YouTube player failed to load.');
+      return;
+    }
+    const holder = document.createElement('div');
+    mount.appendChild(holder);
+    const player = new window.YT.Player(holder, {
+      width: '100%',
+      height: '100%',
+      videoId: t.externalId,
+      playerVars: { autoplay: 1, rel: 0 },
+      events: {
+        onStateChange: (e) => {
+          if (tag !== extTag) return;
+          if (e.data === window.YT.PlayerState.PLAYING) syncPlayingExt(true);
+          else if (e.data === window.YT.PlayerState.PAUSED) syncPlayingExt(false);
+          else if (e.data === window.YT.PlayerState.ENDED) {
+            syncPlayingExt(false);
+            if (autoAdv) advance();
+            else clearNow();
+          }
+        },
+      },
+    });
+    player._crateKind = 'yt';
+    player._crateMount = holder;
+    extPlayer.yt = player;
+    try {
+      player.setVolume(vol);
+    } catch {}
+  } else {
+    await scApi();
+    if (tag !== extTag) return;
+    if (!(window.SC && window.SC.Widget)) {
+      toast('SoundCloud player failed to load.');
+      return;
+    }
+    const iframe = document.createElement('iframe');
+    iframe.src =
+      'https://w.soundcloud.com/player/?url=' +
+      encodeURIComponent('https://soundcloud.com/' + t.externalId) +
+      '&auto_play=true';
+    iframe.allow = 'autoplay';
+    mount.appendChild(iframe);
+    const widget = window.SC.Widget(iframe);
+    widget._crateKind = 'sc';
+    widget._crateMount = iframe;
+    extPlayer.sc = widget;
+    widget.bind(window.SC.Widget.Events.PLAY, () => {
+      if (tag === extTag) syncPlayingExt(true);
+    });
+    widget.bind(window.SC.Widget.Events.PAUSE, () => {
+      if (tag === extTag) syncPlayingExt(false);
+    });
+    widget.bind(window.SC.Widget.Events.FINISH, () => {
+      if (tag !== extTag) return;
+      syncPlayingExt(false);
+      if (autoAdv) advance();
+      else clearNow();
+    });
+    try {
+      widget.setVolume(vol);
+    } catch {}
+    startExtProbe();
+  }
+  startExtProbe();
+}
+
+const extPlayer = { yt: null, sc: null };
+
+function extWidget() {
+  if (srcKind === 'yt') return extPlayer.yt;
+  if (srcKind === 'sc') return extPlayer.sc;
+  return null;
+}
+
+function extDuration() {
+  const f = currentTrack();
+  if (f && f.track && f.track.duration) return f.track.duration;
+  return 0;
+}
+
+function startExtProbe() {
+  if (extProbe) clearInterval(extProbe);
+  extProbe = setInterval(() => {
+    const w = extWidget();
+    if (!w) return;
+    try {
+      if (srcKind === 'yt') {
+        if (w.getPlayerState && w.getPlayerState() === window.YT.PlayerState.PLAYING) {
+          w._crateDur = w.getDuration ? w.getDuration() : 0;
+          w._crateCur = w.getCurrentTime ? w.getCurrentTime() : 0;
+        }
+      } else if (w.getPosition) {
+        w.getPosition((p) => {
+          w._crateCur = p / 1000;
+        });
+        w.getDuration((d) => {
+          w._crateDur = d / 1000;
+        });
+      }
+    } catch {}
+  }, 500);
+}
+
+function extCur() {
+  const w = extWidget();
+  if (!w) return 0;
+  if (srcKind === 'yt') {
+    try {
+      if (w.getPlayerState && w.getPlayerState() === window.YT.PlayerState.PLAYING)
+        return w._crateCur || 0;
+      return w.getCurrentTime ? w.getCurrentTime() : 0;
+    } catch {
+      return 0;
+    }
+  }
+  try {
+    return w._crateCur || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function extDur() {
+  const w = extWidget();
+  if (w && w._crateDur) return w._crateDur;
+  return extDuration();
+}
+
+function extSeek(frac) {
+  const w = extWidget();
+  if (!w) return;
+  const d = extDur();
+  if (!d) return;
+  try {
+    if (srcKind === 'yt') w.seekTo(frac * d, true);
+    else if (w.seekTo) w.seekTo(frac * d * 1000);
+  } catch {}
+}
+
+function extNudge(sec) {
+  if (srcKind === 'file') {
+    if (audio.duration) audio.currentTime = Math.max(0, Math.min(audio.duration, audio.currentTime + sec));
+    return;
+  }
+  const w = extWidget();
+  if (!w) return;
+  const d = extDur();
+  if (!d) return;
+  const frac = Math.max(0, Math.min(1, (extCur() + sec) / d));
+  extSeek(frac);
+}
+
+function setVolume(v) {
+  audio.volume = v / 100;
+  const w = extWidget();
+  if (!w) return;
+  try {
+    if (srcKind === 'yt') w.setVolume(v);
+    else if (w.setVolume) w.setVolume(v);
+  } catch {}
+}
+
+function stopFileKeepState() {
+  try {
+    audio.pause();
+  } catch {}
+  audio.removeAttribute('src');
+  audio.load();
+}
+
 function startTrack(t, p) {
   api('/api/play', { code, trackId: t.id })
     .then((d) => {
       state = d.state;
       render();
-      audio.src = trackPath(t);
-      audio.play().catch(() => toast('Press Play to start the audio.'));
+      if (isExt(t)) playExt(t);
+      else {
+        stopExt();
+        showNowSrc(t);
+        audio.src = trackPath(t);
+        audio.play().catch(() => toast('Press Play to start the audio.'));
+      }
     })
     .catch((e) => toast(errMsg(e)));
 }
@@ -380,6 +687,26 @@ function vetoTrack(t) {
 }
 
 function togglePlay() {
+  if (srcKind !== 'file') {
+    const w = extWidget();
+    if (!w) {
+      const next = firstQueued(state);
+      if (next) startTrack(next.track, next.person);
+      else toast('The crate is empty.');
+      return;
+    }
+    try {
+      if (srcKind === 'yt') {
+        if (w.getPlayerState && w.getPlayerState() === window.YT.PlayerState.PLAYING) w.pauseVideo();
+        else w.playVideo();
+      } else {
+        w.toggle();
+      }
+    } catch {
+      toast('Autoplay blocked, click again.');
+    }
+    return;
+  }
   if (!audio.src) {
     const next = firstQueued(state);
     if (next) startTrack(next.track, next.person);
@@ -391,8 +718,15 @@ function togglePlay() {
 }
 
 function tick() {
-  const dur = audio.duration || 0;
-  const cur = audio.currentTime || 0;
+  let dur = 0;
+  let cur = 0;
+  if (srcKind === 'file') {
+    dur = audio.duration || 0;
+    cur = audio.currentTime || 0;
+  } else {
+    dur = extDur();
+    cur = extCur();
+  }
   $('tCur').textContent = fmtTime(cur);
   $('tRem').textContent = dur ? '-' + fmtTime(Math.max(dur - cur, 0)) : '';
   const seek = $('seek');
@@ -403,6 +737,7 @@ function tick() {
 }
 
 function syncPlaying() {
+  if (srcKind !== 'file') return;
   const on = !!audio.src && !audio.paused;
   document.body.classList.toggle('playing', on);
   const btn = $('bigPlay');
@@ -413,11 +748,16 @@ function syncPlaying() {
 function bindControls() {
   $('bigPlay').addEventListener('click', togglePlay);
   $('seek').addEventListener('input', () => {
-    if (audio.duration) audio.currentTime = ($('seek').value / 1000) * audio.duration;
+    const frac = $('seek').value / 1000;
+    if (srcKind === 'file') {
+      if (audio.duration) audio.currentTime = frac * audio.duration;
+    } else {
+      extSeek(frac);
+    }
   });
   $('vol').addEventListener('input', () => {
     vol = Number($('vol').value);
-    audio.volume = vol / 100;
+    setVolume(vol);
     setFill($('vol'), vol);
     savePrefs();
   });
@@ -472,22 +812,22 @@ function bindControls() {
       if (next) startTrack(next.track, next.person);
     } else if (e.code === 'ArrowLeft') {
       e.preventDefault();
-      if (audio.duration) audio.currentTime = Math.max(0, audio.currentTime - 5);
+      extNudge(-5);
     } else if (e.code === 'ArrowRight') {
       e.preventDefault();
-      if (audio.duration) audio.currentTime = Math.min(audio.duration, audio.currentTime + 5);
+      extNudge(5);
     } else if (e.code === 'ArrowUp') {
       e.preventDefault();
       vol = Math.min(100, vol + 5);
       $('vol').value = vol;
-      audio.volume = vol / 100;
+      setVolume(vol);
       setFill($('vol'), vol);
       savePrefs();
     } else if (e.code === 'ArrowDown') {
       e.preventDefault();
       vol = Math.max(0, vol - 5);
       $('vol').value = vol;
-      audio.volume = vol / 100;
+      setVolume(vol);
       setFill($('vol'), vol);
       savePrefs();
     } else if (e.code === 'KeyD') {
@@ -513,6 +853,12 @@ function renderQR() {
 }
 
 function restorePosition(found) {
+  if (isExt(found.track)) {
+    playExt(found.track);
+    return;
+  }
+  stopExt();
+  showNowSrc(found.track);
   audio.src = trackPath(found.track);
   audio.addEventListener(
     'loadedmetadata',

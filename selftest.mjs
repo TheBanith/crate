@@ -241,6 +241,31 @@ async function run() {
   assert.equal(person(st, meB), null, 'B removed after veto (no tracks, no plays)');
   ok('veto removes track and empt requester');
 
+  r = await call('POST', '/api/addlink', { jar: jarA, body: { code, url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' } });
+  assert.equal(r.status, 200, 'addlink yt status: ' + JSON.stringify(r.data));
+  alice = person(r.data.state, meA);
+  const ext1 = alice.tracks.find((t) => t.source === 'yt');
+  assert.ok(ext1, 'yt track queued');
+  assert.equal(ext1.externalId, 'dQw4w9WgXcQ', 'yt id stored');
+  assert.equal(ext1.size, 0, 'external has no file size');
+  ok('add youtube link by URL');
+
+  r = await call('POST', '/api/play', { jar: hostJar, body: { code, trackId: ext1.id } });
+  assert.equal(r.status, 200, 'play external status');
+  st = r.data.state;
+  assert.equal(st.nowTrack, ext1.id, 'external now playing');
+  ok('host can play external track');
+
+  r = await call('POST', '/api/addlink', { jar: jarA, body: { code, url: 'https://example.com/song.mp3' } });
+  assert.equal(r.status, 400, 'junk link rejected');
+  ok('invalid link rejected');
+
+  r = await call('GET', '/api/ytsearch?code=' + code + '&q=test', { jar: jarA });
+  assert.equal(r.status, 200, 'ytsearch status');
+  assert.ok(Array.isArray(r.data.results), 'results array');
+  assert.equal(r.data.searchOpen, false, 'search closed without key');
+  ok('ytsearch degrades gracefully without key');
+
   r = await call('POST', '/api/sort', { jar: hostJar, body: { code } });
   assert.equal(r.status, 200, 'sort status');
   ok('sort by least played runs');

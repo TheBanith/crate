@@ -135,6 +135,101 @@ async function handleFile(request, env, url, parts) {
   return new Response(obj.body, { status, headers });
 }
 
+function parseISO8601Dur(s) {
+  const m = /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/.exec(String(s || ''));
+  if (!m) return 0;
+  return (Number(m[1] || 0) * 86400) + (Number(m[2] || 0) * 3600) + (Number(m[3] || 0) * 60) + Number(m[4] || 0);
+}
+
+const ytCache = new Map();
+
+async function ytSearch(env, q) {
+  if (!env.YT_API_KEY) return { results: [], searchOpen: false };
+  const key = q.toLowerCase();
+  const now = Date.now();
+  const hit = ytCache.get(key);
+  if (hit && now - hit.at < 10 * 60 * 1000) return { results: hit.results, searchOpen: true };
+  try {
+    const url =
+      'https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=8&q=' +
+      encodeURIComponent(q) +
+      '&key=' +
+      encodeURIComponent(env.YT_API_KEY);
+    const res = await fetch(url);
+    if (!res.ok) return { results: [], searchOpen: true };
+    const data = await res.json();
+    const ids = (data.items || [])
+      .map((i) => (i.id && i.id.videoId) || null)
+      .filter(Boolean)
+      .slice(0, 8);
+    if (!ids.length) {
+      ytCache.set(key, { at: now, results: [] });
+      return { results: [], searchOpen: true };
+    }
+    const vres = await fetch(
+      'https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=' +
+        ids.join(',') +
+        '&key=' +
+        encodeURIComponent(env.YT_API_KEY)
+    );
+    if (!vres.ok) return { results: [], searchOpen: true };
+    const vdata = await vres.json();
+    const results = (vdata.items || []).map((v) => ({
+      id: v.id,
+      title: String((v.snippet && v.snippet.title) || 'Untitled').slice(0, 80),
+      thumb:
+        (v.snippet &&
+          v.snippet.thumbnails &&
+          (v.snippet.thumbnails.medium || v.snippet.thumbnails.default) &&
+          (v.snippet.thumbnails.medium || v.snippet.thumbnails.default).url) ||
+        '',
+      duration: parseISO8601Dur(v.contentDetails && v.contentDetails.duration),
+    }));
+    if (ytCache.size > 200) ytCache.delete(ytCache.keys().next().value);
+    ytCache.set(key, { at: now, results });
+    return { results, searchOpen: true };
+  } catch {
+    return { results: [], searchOpen: true };
+  }
+}
+
+function ytIdFromUrl(u) {
+  let m = /[?&]v=([A-Za-z0-9_-]{11})/.exec(u);
+  if (m) return m[1];
+  m = /(?:youtu\.be\/|youtube\.com\/(?:embed|shorts|live)\/)([A-Za-z0-9_-]{11})/.exec(u);
+  if (m) return m[1];
+  if (/^[A-Za-z0-9_-]{11}$/.test(u)) return u;
+  return null;
+}
+
+function scIdFromUrl(u) {
+  const m = /^soundcloud\.com\/[\w-]+\/[\w-]+(?:\/[\w-]+)?\/?(?:[?#].*)?$/.exec(String(u || '').replace(/^https?:\/\/(www\.|m\.)?/i, '').trim());
+  if (!m) return null;
+  return m[0];
+}
+
+async function resolveLink(rawUrl) {
+  const u = String(rawUrl || '').trim();
+  if (!u) return { error: 'bad' };
+  const yt = ytIdFromUrl(u);
+  if (yt) return { source: 'yt', externalId: yt, title: 'YouTube video ' + yt, thumb: '', duration: 0 };
+  const sc = scIdFromUrl(u);
+  if (sc) {
+    let title = 'SoundCloud track';
+    let thumb = '';
+    try {
+      const res = await fetch('https://soundcloud.com/oembed?format=json&url=' + encodeURIComponent('https://' + sc));
+      if (res.ok) {
+        const data = await res.json();
+        if (data.title) title = String(data.title).slice(0, 80);
+        if (data.thumbnail_url) thumb = String(data.thumbnail_url).slice(0, 500);
+      }
+    } catch {}
+    return { source: 'sc', externalId: sc, title, thumb, duration: 0 };
+  }
+  return { error: 'bad' };
+}
+
 async function handleApi(request, env, url) {
   const path = url.pathname;
   const method = request.method;
@@ -205,6 +300,37 @@ async function handleApi(request, env, url) {
       return respond(r);
     }
     return respond(r);
+  }
+
+  if (path === '/api/ytsearch' && method === 'GET') {
+    const code = normCode(url.searchParams.get('code'));
+    if (!CODE_RE.test(code)) return json({ error: 'bad' }, 400);
+    const rand = hostRandFor(request, code) || guestRandFor(request, code);
+    if (!rand) return json({ error: 'forbidden' }, 403);
+    const q = String(url.searchParams.get('q') || '').trim().slice(0, 80);
+    if (!q) return json({ error: 'bad' }, 400);
+    return json(await ytSearch(env, q));
+  }
+
+  if (path === '/api/addlink' && method === 'POST') {
+    if (!checkOrigin(request, url)) return json({ error: 'forbidden' }, 403);
+    const body = await readJSON(request);
+    const code = normCode(body && body.code);
+    if (!CODE_RE.test(code)) return json({ error: 'bad' }, 400);
+    const rand = guestRandFor(request, code);
+    if (!rand) return json({ error: 'forbidden' }, 403);
+    const r = await resolveLink(body && body.url);
+    if (r.error) return respond(r);
+    return respond(
+      await stubOf(env, code).addExternal(
+        rand,
+        r.title,
+        r.source,
+        r.externalId,
+        r.thumb,
+        r.duration
+      )
+    );
   }
 
   const mutations = {

@@ -151,6 +151,21 @@ function renderQueue() {
     for (const t of queued) {
       const row = document.createElement('div');
       row.className = 'track' + (next && next.track.id === t.id ? ' next' : '');
+      if (t.thumb || t.source === 'yt') {
+        const art = document.createElement('img');
+        art.className = 'track-art';
+        art.alt = '';
+        art.loading = 'lazy';
+        art.referrerPolicy = 'no-referrer';
+        art.src = t.thumb || (t.source === 'yt' ? 'https://i.ytimg.com/vi/' + t.externalId + '/default.jpg' : '');
+        row.appendChild(art);
+      }
+      if (t.source && t.source !== 'file') {
+        const src = document.createElement('span');
+        src.className = 'badge src-' + t.source;
+        src.textContent = t.source === 'yt' ? 'YT' : 'SC';
+        row.appendChild(src);
+      }
       const tt = document.createElement('span');
       tt.className = 'track-title';
       tt.textContent = t.title;
@@ -365,6 +380,110 @@ $('withdrawBtn').addEventListener('click', async () => {
     toast('Your songs were removed.');
   } catch (e) {
     toast(errMsg(e));
+  }
+});
+
+const srcTabs = [
+  ['tabUpload', 'paneUpload'],
+  ['tabTube', 'paneTube'],
+  ['tabLink', 'paneLink'],
+];
+
+for (const [tabId, paneId] of srcTabs) {
+  $(tabId).addEventListener('click', () => {
+    for (const [t, p] of srcTabs) {
+      const on = t === tabId;
+      $(t).classList.toggle('on', on);
+      $(t).setAttribute('aria-selected', on ? 'true' : 'false');
+      $(p).hidden = !on;
+    }
+  });
+}
+
+function renderYtItem(box, item) {
+  const row = document.createElement('div');
+  row.className = 'yt-item';
+  if (item.thumb) {
+    const art = document.createElement('img');
+    art.className = 'track-art';
+    art.alt = '';
+    art.loading = 'lazy';
+    art.referrerPolicy = 'no-referrer';
+    art.src = item.thumb;
+    row.appendChild(art);
+  }
+  const tt = document.createElement('span');
+  tt.className = 'track-title';
+  tt.textContent = item.title;
+  row.appendChild(tt);
+  const add = document.createElement('button');
+  add.className = 'mini primary-mini';
+  add.textContent = 'Add';
+  add.addEventListener('click', async () => {
+    add.disabled = true;
+    try {
+      const d = await api('/api/addlink', {
+        code,
+        url: 'https://www.youtube.com/watch?v=' + item.id,
+      });
+      state = d.state;
+      render();
+      toast('Added to the crate.');
+    } catch (e) {
+      toast(errMsg(e));
+      add.disabled = false;
+    }
+  });
+  row.appendChild(add);
+  box.appendChild(row);
+}
+
+$('ytForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const q = $('ytQuery').value.trim();
+  const box = $('ytList');
+  const msg = $('ytMsg');
+  box.textContent = '';
+  msg.hidden = true;
+  if (!q) return;
+  msg.hidden = false;
+  msg.textContent = 'Searching...';
+  try {
+    const res = await fetch('/api/ytsearch?code=' + code + '&q=' + encodeURIComponent(q));
+    const d = await res.json();
+    if (!res.ok) throw { data: d };
+    if (!d.searchOpen) {
+      msg.textContent = 'YouTube search needs an API key on the server. Paste a link instead.';
+      return;
+    }
+    if (!d.results || !d.results.length) {
+      msg.textContent = 'No results. Try different words.';
+      return;
+    }
+    msg.hidden = true;
+    for (const item of d.results) renderYtItem(box, item);
+  } catch (err) {
+    msg.hidden = false;
+    msg.textContent = errMsg(err);
+  }
+});
+
+$('linkForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = $('linkInput');
+  const msg = $('linkMsg');
+  msg.hidden = true;
+  const link = input.value.trim();
+  if (!link) return;
+  try {
+    const d = await api('/api/addlink', { code, url: link });
+    state = d.state;
+    render();
+    input.value = '';
+    toast('Added to the crate.');
+  } catch (err) {
+    msg.hidden = false;
+    msg.textContent = err.data && err.data.error === 'bad' ? 'That link is not a YouTube or SoundCloud track.' : errMsg(err);
   }
 });
 

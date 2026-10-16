@@ -52,14 +52,36 @@
 
       <section class="card upload-card">
         <h2>Add a track</h2>
-        <label class="filelabel">
-          <input type="file" id="fileInput" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.flac" />
-          <span id="fileLabel">Choose an audio file</span>
-        </label>
-        <input id="titleInput" placeholder="Artist - Title" maxlength="80" />
-        <div class="progress" id="progWrap" hidden><div id="progFill"></div></div>
-        <p id="fileMsg" class="hint" hidden></p>
-        <button id="uploadBtn" class="primary" disabled>Add to the crate</button>
+        <div class="src-tabs" role="tablist" aria-label="Track source">
+          <button type="button" id="tabUpload" class="tab on" role="tab" aria-selected="true">Upload</button>
+          <button type="button" id="tabTube" class="tab" role="tab" aria-selected="false">YouTube</button>
+          <button type="button" id="tabLink" class="tab" role="tab" aria-selected="false">Paste link</button>
+        </div>
+        <div id="paneUpload">
+          <label class="filelabel">
+            <input type="file" id="fileInput" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.flac" />
+            <span id="fileLabel">Choose an audio file</span>
+          </label>
+          <input id="titleInput" placeholder="Artist - Title" maxlength="80" />
+          <div class="progress" id="progWrap" hidden><div id="progFill"></div></div>
+          <p id="fileMsg" class="hint" hidden></p>
+          <button id="uploadBtn" class="primary" disabled>Add to the crate</button>
+        </div>
+        <div id="paneTube" hidden>
+          <form id="ytForm" class="joinform">
+            <input id="ytQuery" placeholder="Search YouTube" maxlength="80" autocomplete="off" />
+            <button type="submit" class="primary">Search</button>
+          </form>
+          <p id="ytMsg" class="hint" hidden></p>
+          <div id="ytList" class="yt-list"></div>
+        </div>
+        <div id="paneLink" hidden>
+          <form id="linkForm" class="joinform">
+            <input id="linkInput" placeholder="YouTube or SoundCloud URL" maxlength="300" autocomplete="off" inputmode="url" />
+            <button type="submit" class="primary">Add to the crate</button>
+          </form>
+          <p id="linkMsg" class="hint" hidden></p>
+        </div>
       </section>
 
       <section class="my-stuff">

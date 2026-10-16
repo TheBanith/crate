@@ -27,7 +27,7 @@
       </header>
 
       <div class="dj-grid">
-        <section class="player-panel">
+          <section class="player-panel">
           <div class="qr-box">
             <div id="qrCode" class="qr"></div>
             <div class="qr-text">
@@ -44,7 +44,12 @@
             </div>
             <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
             <div class="now-title" id="nowTitle">Nothing yet</div>
-            <div class="now-person" id="nowPerson"></div>
+            <div class="now-meta">
+              <span id="nowSrc" class="badge src-src" hidden></span>
+              <img id="nowArt" class="track-art big" alt="" hidden />
+              <div class="now-person" id="nowPerson"></div>
+            </div>
+            <div id="extFrame" class="ext-frame" hidden></div>
             <div class="seekrow">
               <span id="tCur">0:00</span>
               <input type="range" id="seek" min="0" max="1000" value="0" />

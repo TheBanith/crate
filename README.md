@@ -92,6 +92,8 @@ Requires: a Cloudflare account, **R2 enabled** (`wrangler r2 bucket create crate
 
 The account's storage needs no payment card to run within the free tier; audio blobs are the only large-volume storage. As an alternative for accounts without R2, audio can instead live in the room's DO SQLite (5 GB free total per account) — the endpoints stay identical.
 
+**YouTube search (optional):** guests can always add YouTube/SoundCloud tracks by pasting a link. In-app YouTube *search* additionally needs a YouTube Data API v3 key: enable it in Google Cloud Console, restrict the key to that API, then `npx wrangler secret put YT_API_KEY` (production) and/or put it in `.dev.vars` (see `.dev.vars.example`) for local dev. Without a key the Search tab explains itself and link-paste keeps working. Free quota is 10,000 units/day; one search costs ~100.
+
 ### Self-hosting on a VPS
 
 See [`deploy/vps-deploy.sh`](deploy/vps-deploy.sh) — installs Node 22 + Caddy, drops a systemd unit in `/opt/crate`, and proxies your domain with automatic HTTPS. Zero code changes: the same Worker runs under `wrangler dev`.
